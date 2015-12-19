@@ -49,7 +49,7 @@ class RepoFixtureCommand extends Command {
 
     protected function writeHint(OutputInterface $output)
     {
-        $output->writeln('<error>Please specify an action. Either: '. self::ARG_DESCRIPTION .'</error>');
+        $output->writeln('<header>Please specify an action. Either: '. self::ARG_DESCRIPTION .'</header>');
     }
 
 
