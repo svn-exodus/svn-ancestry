@@ -1,0 +1,13 @@
+{
+    "name": "johnniewalker/svn-ancestry",
+    "description": "Given the subdirectory of an svn repo, for each file in that directory that has ever existed, recursively trace all copyfrom-path's that represent that file's ancestry. See Github repo: https://github.com/svn-exodus/svn-ancestry",
+    "require": {
+        "php": ">=5.3.9",
+        "symfony/console": "2.8"
+    },
+    "autoload": {
+        "psr-0": {
+            "": "src/"
+        }
+    }
+}
