@@ -31,30 +31,40 @@ class RepoFixtureCommand extends Command {
         $headerStyle = new OutputFormatterStyle('white', 'black', array('bold'));
         $output->getFormatter()->setStyle('header', $headerStyle);
 
+		//Check input.
         if (!$input->hasArgument('action')){
-    	    $this->writeHint($output);
-	    throw new \InvalidArgumentException('No action specified.');
-	}
-
+    	    $this->writeActionHint($output);
+	    	throw new \InvalidArgumentException('No action specified.');
+		}		
+		
+		//Switch on value of action	
         if ($input->getArgument('action') == 'teardown'){
             $this->tearDownRepo($output);
-        } elseif ($input->getArgument('action') == 'setup'){
-            $this->setUpRepo($output);
+        } elseif ($input->getArgument('action') == 'setup'){       	
+			
+			//Check for prerequisite programs.	
+			if ($this->hasSvnClient()){
+				$output->writeln('<error>SVN is not installed</error>');
+    		   	throw new \RuntimeException('Prerequisite commands not found on system.');
+    		}
+			
+			
+        	$this->setUpRepo($output);
         } else {
-            $this->writeHint($output);            
+            $this->writeActionHint($output);            
             throw new \InvalidArgumentException('No valid action specified.');
         }
 
     }
 
-    protected function writeHint(OutputInterface $output)
+    protected function writeActionHint(OutputInterface $output)
     {
         $output->writeln('<error>Please specify an action. Either: '. self::ARG_DESCRIPTION .'</error>');
-    }
+    }   		
 
 
     protected function tearDownRepo(OutputInterface $output)
-    {
+    {		
         $output->writeln('<header>Tearing down repo...</header>');
     }
  
@@ -62,8 +72,28 @@ class RepoFixtureCommand extends Command {
     {
         $output->writeln('<header>Setting up repo...</header>');
     }
- 
+	
+	
+	/**
+	 * @return boolean TRUE if svn installed on the current machine.
+	 */
+	protected function hasSvnClient()
+	{
+		return $this->hasCommand('svn');
+	}
 
+	/**
+	 * @param string command to test for.
+	 * @return boolean TRUE if $command installed on the current machine.
+	 */	
+	protected function hasCommand($command)
+	{
+		$outputArray = array();
+		exec('type -f '. escapeshellarg($command)  .' &>/dev/null; echo $?', $outputArray);	
+		return ($outputArray[0]) ? FALSE : TRUE;
+	}
+ 
+	
     protected function getHelpText()
     {
         $description = self::DESCRIPTION;
