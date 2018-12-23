@@ -1,0 +1,366 @@
+Skip to content
+ 
+Search or jump to…
+
+Pull requests
+Issues
+Marketplace
+Explore
+ @therealcurlsport Sign out
+Your account has been flagged.
+Because of that, your profile is hidden from the public. If you believe this is a mistake, contact support to have your account status reviewed.
+1
+0 1 svn-exodus/svn-ancestry
+ Code  Issues 2  Pull requests 1  Projects 0  Wiki  Insights
+Task: Write a Symfony Console Command to generate our 'svn repository test fixture'. #1
+ Open	johnniewalker opened this issue on Dec 18, 2015 · 9 comments Comments
+Assignees
+ @johnniewalker johnniewalker
+
+Labels
+task
+Projects
+None yet
+Milestone
+ 
+001 - Tool works ...
+Notifications
+You’re not receiving notifications from this thread.
+1 participant
+@johnniewalker
+@johnniewalker
+Contributor
+johnniewalker commented on Dec 18, 2015
+This task is a continuation from the similar issue in the parent repository's Issue tracker.
+
+Goal
+Have the ability to repeatedly create an extremely simple svn repository to use a test fixture to test the svn-exodus behaviour.
+
+Why
+We want a simple svn repository (repo) because it makes sense to test our code against one to ensure the tool works as expected. By creating one specifically for testing purposes we can ensure that it contains just the bare minimum amount of data to test the code without overwhelming us with irrelevant data.
+
+We want the creation of this repository to be repeatable so that automated tests have the ability to set-up and tear-down this test fixture.
+
+Also, if it the creation process is encoded into some script, that script can act as a document that defines the type of repository we expect to be working with.
+
+How
+Pick a language/framework to encode the repository creation process - [Done (in original issue)]
+Decide the structure of the repo that we want to create - [Done (in original issue)]
+Write the script
+Decide upon the application architecture
+Create the basic set of core commands (to hone the interface)
+Test the interface
+Get a quick and dirty implementation running to ensure we can create and destroy an svn repo.
+Consider the repo-fixture model more deeply.
+Introduce unit testing.
+Implement a more robust model that can cope with concurrency issues.
+Test it and commit the Symfony Console command to our project.
+ @johnniewalker
+Contributor
+johnniewalker commented on Dec 18, 2015
+Write the script
+Decide upon the application architecture
+I have decided to use Symfony Console as a framework for the svn-ancestry project.
+
+So, Symfony, kind of, dictates the structure for us.
+
+Let's digress to a different task to
+
+Task: Set up the development environment for the project #2, then
+Task: Install Symfony Console into our repository - #3, then
+Task: Create a basic console script to act as the executable bootstrap - #4
+ @johnniewalker johnniewalker added the task  label on Dec 18, 2015
+ @johnniewalker johnniewalker added this to the 001 - Tool works on an extremely simple test svn repo. milestone on Dec 19, 2015
+ @johnniewalker johnniewalker self-assigned this on Dec 19, 2015
+ @svn-exodus svn-exodus locked and limited conversation to collaborators on Dec 19, 2015
+@johnniewalker
+Contributor
+johnniewalker commented on Dec 19, 2015
+Create the basic set of core commands (to hone the interface)
+Ensure we are in the working directory that we set up on the development environment virtual machine that I named Popul.
+
+$ cd ~/tool-dev/svn-ancestry
+Ensure the code is ready for changes
+
+$ git pull
+Already up-to-date.
+$ git status
+# On branch master
+nothing to commit (working directory clean)
+Carry on following the guidance in the Sitepoint: Command line PHP using Symfony Console tutorial and create a directory to place our command.
+
+Put it into a subdirectory of src named after the vendor (me) and then inside a directory of commands. The Sitepoint: Command line PHP using Symfony Console tutorial has a bug in it where the author suggests storing our command in a directory called ... /Command/ ... and then goes on to put it into a directory named Commands (with an 's'). So, I was a bit confused. The official How to Create a Console Command uses the singular form for the command directory and the architecture tour suggest using the keyword AppBundle instead of a vendor name. So, I'm going to go with : src/AppBundle/Command/MyCommand
+
+Create the command directory:
+
+# The -p option ensures all necessary parent directories are created
+$ mkdir -p src/AppBundle/Command
+So, what are we going to call our command?
+
+Our original plan was to call it repo-fixture-service and have options to setup and teardown the fixture.
+
+I think the word Service might have special significance in the Symfony framework, so let's shorten it to the noun : RepoFixture
+
+# Create the file
+$ touch src/AppBundle/Command/RepoFixtureCommand.php
+Open up the console file and make the necessary changes to import the new script and register the command:
+
+#!/usr/bin/env php
+<?php
+
+// Set to run indefinitely if needed.
+set_time_limit(0);
+
+// Optional. It’s better to do it in the php.ini file.
+date_default_timezone_set('Europe/London'); 
+
+// Include the composer autoloader.
+require_once __DIR__ . '/../vendor/autoload.php'; 
+
+// Import the Symfony Console Application.
+use Symfony\Component\Console\Application; 
+use AppBundle\Command\RepoFixtureCommand;
+
+$app = new Application();
+$app->add(new RepoFixtureCommand());
+$app->run();
+and then create some basic hello world output for each option (and one for no options).
+
+$ emacs src/AppBundle/Command/RepoFixtureCommand.php
+
+...
+Done.
+
+ @johnniewalker johnniewalker changed the title Task: Write a Symfony Console Command to generate our 'svn repository text fixture'. Task: Write a Symfony Console Command to generate our 'svn repository test fixture'. on Dec 19, 2015
+@johnniewalker
+Contributor
+johnniewalker commented on Dec 19, 2015
+Test the interface
+Navigate to our project's root directory.
+
+$ cd ~/tool-dev/svn-ancestry
+Test the repo-fixture Command skeleton
+I have written the core interface for the command with two options; setup and teardown
+
+I could not find an easy way to show the help message when there were invalid arguments so I have hacked it a bit. I also broke convention a little bit, because I could not see the point in naming my command with a two:part name separate by a colon. So, just called it: repo-fixture.
+
+Here's output
+
+No command
+$ app/console 
+Console Tool
+
+Usage:
+  command [options] [arguments]
+
+Options:
+  -h, --help            Display this help message
+  -q, --quiet           Do not output any message
+  -V, --version         Display this application version
+      --ansi            Force ANSI output
+      --no-ansi         Disable ANSI output
+  -n, --no-interaction  Do not ask any interactive question
+  -v|vv|vvv, --verbose  Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
+
+Available commands:
+  help          Displays help for a command
+  list          Lists commands
+  repo-fixture  Set-up or tear down a Subversion repository for use as a fixture to test the svn-ancestry application.
+repo-fixture with no arguments
+$ app/console repo-fixture
+Please specify either: [<setup|teardown>]
+
+  [InvalidArgumentException]  
+  No valid action specified.  
+
+repo-fixture [<action>]
+repo-fixture with unrecognised argument
+$ app/console repo-fixture foo
+Please specify either: [<setup|teardown>]                              
+  [InvalidArgumentException]  
+  No valid action specified.  
+
+repo-fixture [<action>]
+repo-fixture with setup as action argument
+$ app/console repo-fixture setup
+Setting up repo...
+repo-fixture with teardown as action argument
+$ app/console repo-fixture teardown
+$ app/console repo-fixture teardown
+Tearing down repo...
+Ok, so that's OK for now. Commit this.
+
+ @johnniewalker
+Contributor
+johnniewalker commented on Dec 20, 2015
+A moment of reflection
+I have been thinking about how I am going to model the repo-fixture and how this set of commands are going to be used in practice. I have realised that, whether we want it to or not, many instances of the programme be run concurrently. So, we are going to have to potentially deal with a case where one instance creates a database, another destroys it, and the first instance breaks unexpectedly.
+
+I envision the following two kinds of ways that our repo-fixture will be used. I ought to scribble those down as User Stories in this issue tracker.:
+
+Creation of longer lived svn repositories to help guide development and debug the svn-exodus tools. (See this is story form on svn-exodus)
+Fleeting creation and destruction of svn repositories during unit tests. (I will defer writing a story for this when/if we start writing unit tests for svn-ancestry)
+If we are creating longer lived svn repositories, I think I will have to, (borrowing ideas from tools, like vagrant and docker), create repo-fixture instances and return a name, list active instances, destroy instances by name (and potentially destroy all instances on a machine via a destroy iterating over the list).
+
+To avoid concurrency issues, we could automatically generate repo names based on process/thread ids and microtime. Then, filter them to make them more human readable/memorable/typable.
+
+I will also need to make use of filesystem functions to ensure we keep our active to a specific application data directory.
+
+That kind of model can get deceptively complex very quickly. So, I would want to have unit testing in place to ensure that each component is behaving as expected.
+
+But, before all of that. I really just want to do some proof of concept and get our PHP scripts talking to the system and attempting to create a repo in a hardcoded location in the working environment virtual machine that I created for this project.
+
+So, I added some more steps to our How section in the issue description:
+
+Get a quick and dirty implementation running to ensure we can create and destroy an svn repo.
+Consider the repo-fixture model more deeply.
+Introduce unit testing.
+Implement a more robust model that can cope with concurrency issues.
+ @johnniewalker
+Contributor
+johnniewalker commented on Dec 20, 2015
+Get a quick and dirty implementation running to ensure we can create and destroy an svn repo.
+If we start with an idempotent implementation, that does not create too much waste, we can acknowledge that our code is not concurrency-safe and have a hard coded path and name for a repo that we will always destroy before attempting to create.
+
+In terms of error checking - all output from systems command can just go straight to the client.
+
+Let's do it!
+
+I don't think we have installed subversion on the dev machine - so it will be interesting to see how we can look out for and handle that failure.
+
+The Mini Plan:
+Create a directory of files to act as the original 'project' to be imported into the repository.
+Create a directory to host the:
+repo-fixures
+the working copies of the repo-fixtures
+Write some error check to detect svn dependencies are intsalled and throw a wobbly
+Write pseudocode for the teardown action
+Implement the teardown action
+Write pseudocode for the setup action
+Implement the setup action
+Run it
+ @johnniewalker
+Contributor
+johnniewalker commented on Dec 20, 2015
+Create a directory of files to act as the original 'project' to be imported into the repository.
+Where are we going to put this?
+
+This is, static, versioned, app data that is only ever read by the application (never written to).
+
+According to the docs on Organizing Your Business logic you can put any structure one likes inside the src/AppBundle directory. Also, I notice something at the bottom of the page about fixtures which I may find significant in the future. But, for now, to keep things simple I'll just put my 'seed' files into:
+
+src/AppBundle/RepoFixture/InitialSeedProject
+$ cd ~/tool-dev/svn-ancestry
+$ mkdir -p src/AppBundle/RepoFixture/InitialSeedProject
+Next create the files that we decided upon in the original issue.
+
+$ cd src/AppBundle/RepoFixture/InitialSeedProject/
+$ echo "signal" > signal-ancestor.txt
+$ echo "noise" > noise-ancestor.txt
+$ ls
+noise-ancestor.txt  signal-ancestor.txt
+ @johnniewalker
+Contributor
+johnniewalker commented on Jan 20, 2016
+Create a directory to host the variable application data
+Namely:
+
+the repo-fixtures, and
+the working copies of the repo-fixtures
+I suppose, by Symfony convention, this goes into the var directory. Which subdirectory? For this, I shall use my own convention and put it into a subdirectory called: test-data/tmp.
+
+$ cd ~/tool-dev/svn-ancestry
+$ mkdir -p var/test-data/tmp
+$ mkdir var/test-data/tmp/repo-fixtures
+$ mkdir var/test-data/tmp/working-copies
+Actually. The subdirectories of tmp are a bit overkill. Since the content of tmp should not be under version control, the names of subdirectories will be defined in the code that manages that directory.
+
+Let's add a gitignore file to ensure the tmp contents are not tracked by version control.
+
+$ echo "*" > var/test-data/tmp/.gitignore
+$ echo '!.gitignore' >> var/test-data/tmp/.gitignore
+ @johnniewalker
+Contributor
+johnniewalker commented on Feb 4, 2016
+Go on a diversion to install Aptana on my Virtual Machine
+See Issue: #6
+
+Done.
+
+ @johnniewalker
+Contributor
+johnniewalker commented on Feb 5, 2016
+Write some error check to detect svn dependencies are installed and throw a wobbly if not
+I Googled:
+
+how to test for existance of subversion programmatically
+Found this useful answer here: http://stackoverflow.com/a/7655370
+
+If you are using bash, you can use the type builtin:
+
+$ type -f svn
+svn is /usr/bin/svn
+If you want to use it in a script:
+
+$ type -f svn &>/dev/null; echo $?
+0
+$ type -f svn_doesnt_exist &>/dev/null; echo $?
+1
+As the answer says, type is a builtin so I am not sure if it will work on Windows.
+
+I am tempted to start doing clever OOP patterns to ensure the code works on multiple platforms. But, I have to resist and just focus on getting the code working once, on one machine, for now.
+
+So, let's scribble this into place.
+
+First let's try out the suggested command
+$ type -f svn
+bash: type: svn: not found
+This made me wonder if type builtin was working properly. (I thought I'd installed svn already).
+
+I ran a command to list the builtins, as suggested by this stackexchange answer.
+
+$ compgen -b | grep type
+type
+typeset
+Which made me realise that type was installed and perhaps I probably really hadn't installed svn after all.
+
+$ svn --version
+The program 'svn' is currently not installed.  You can install it by typing:
+sudo apt-get install subversion
+Svn is not installed. That's good. It is nice to be able to test the code out in such context.
+
+So, let's assert that programmatic command returns 1 to mean svn does not exist.
+
+$ type -f svn &> /dev/null; echo $?
+1
+This command looks for svn directing the streamed output to the black hole that is /dev/null. The next command echo's $? which reads the exit status of the last command executed.
+
+Test it out
+$ cd ~/tool-dev/svn-ancestry
+$ app/console repo-fixture setup
+SVN is not installed
+
+  [RuntimeException]                          
+  Prerequisite commands not found on system.  
+repo-fixture [<action>]
+Ok that works.
+
+When I wrote the code, I had to decide where to put the check. At first I put it close to the beginning of the execute method - thinking it is good to 'crash early' if things are not right . But, later I decided to make our command more robust and only assert the existence of svn on the repo setup action. Because, in all likelihood, that is the only action that actually needs svn at the mo. Ultimately this highlights the fact that I have not come up with an error policy for this program. (See Code Complete by Steve McConnell for details on error policy and the qualities of software programs.)
+
+ @therealcurlsport
+Write Preview
+This conversation has been locked and limited to collaborators.
+
+© 2018 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Help
+Contact GitHub
+Pricing
+API
+Training
+Blog
+About
+Press h to open a hovercard with more details.
